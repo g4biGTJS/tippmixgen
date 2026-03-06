@@ -279,7 +279,8 @@ function buildPrompt(homeTeam, awayTeam, matchData, odds) {
 
   const system = `Te egy profi futball fogadási elemző vagy, aki mély statisztikai tudással rendelkezik.
 Minden tippet az adatokkal támasztasz alá: forma, H2H, szezon stat, odds value elemzés.
-Kizárólag valid JSON-t adsz vissza. Semmi markdown, semmi magyarázat a JSON-on kívül.`;
+Kizárólag valid JSON-t adsz vissza. Semmi markdown, semmi magyarázat a JSON-on kívül.
+FONTOS: MINDEN szöveg, reasoning, analysis, pick magyarul legyen. Soha ne használj angolt.`;
 
   const injLines = inj.length
     ? inj.map(i => `  ${i.team} – ${i.player} (${i.type}: ${i.reason})`).join('\n')
@@ -340,20 +341,20 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
   },
   "overUnder": {
     "line": 2.5,
-    "prediction": "over" | "under",
+    "prediction": "több" | "kevesebb",
     "confidence": 1-100,
     "odds": null vagy szám,
     "reasoning": "1-2 mondat"
   },
   "btts": {
-    "prediction": true | false,
+    "prediction": true (igen) | false (nem),
     "confidence": 1-100,
     "odds": null vagy szám,
     "reasoning": "1-2 mondat"
   },
   "corners": {
     "line": szám (KÖTELEZŐ – ha nincs odds, becsüld: Premier League átlag ~10, kisebb ligák ~9),
-    "prediction": "over" | "under" (KÖTELEZŐ – mindig adj becslést a csapatok stílusa alapján),
+    "prediction": "több" | "kevesebb" (KÖTELEZŐ – mindig adj becslést a csapatok stílusa alapján),
     "confidence": 1-100,
     "odds": null vagy szám,
     "reasoning": "1-2 mondat – támadó csapatok több szögletet szereznek, becsüld a liga és stílus alapján"
@@ -366,25 +367,32 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
     "reasoning": "1-2 mondat – meccs tétje, rivalizálás, bíró szigora alapján becsüld"
   },
   "safeBet": {
-    "market": "melyik piac",
-    "pick": "pontosan mit ajánlasz",
-    "odds": szám (1.20–1.60 közötti odds – BIZTOS tipp, nagy valószínűség),
+    "pick": "1 DARAB egyszerű tipp – a legvalószínűbb kimenetel (pl. favorit győzelme, Over 1.5 gól)",
+    "market": "piac neve magyarul",
+    "odds": szám (1.15–1.65 közötti odds – minél biztosabb annál jobb),
     "confidence": 75-95,
-    "reasoning": "2 mondat: miért biztos ez, milyen adatok alapján"
+    "reasoning": "2 mondat magyarul: miért szinte biztos ez"
   },
   "mediumBet": {
-    "market": "melyik piac",
-    "pick": "pontosan mit ajánlasz",
-    "odds": szám (2.50–4.50 közötti odds – KÖZEPES rizikó, 2000 Ft-ból ~6-9k nyeremény),
-    "confidence": 50-70,
-    "reasoning": "2 mondat: miért van value itt"
+    "pick": "KOMBINÁCIÓ – 2-3 fogadás egyszerre ugyanarra a meccsre (pl. Barcelona győz ÉS Over 1.5 gól első félidőben)",
+    "legs": [
+      {"market": "piac neve magyarul", "selection": "mit választasz", "odds": szám},
+      {"market": "piac neve magyarul", "selection": "mit választasz", "odds": szám}
+    ],
+    "combinedOdds": szám (az egyedi odds-ok szorzata, 3.00–6.00 között),
+    "confidence": 45-65,
+    "reasoning": "2 mondat magyarul: miért jó ez a kombináció"
   },
   "riskyBet": {
-    "market": "melyik piac",
-    "pick": "pontosan mit ajánlasz",
-    "odds": szám (6.00+ odds – RIZIKÓS tipp, nagy nyeremény lehetséges),
-    "confidence": 25-45,
-    "reasoning": "2 mondat: mi indokolja ezt a merész tippet"
+    "pick": "MERÉSZ KOMBINÁCIÓ – 3-4 fogadás (pl. hazai győz ÉS mindkét csapat szerez ÉS 3+ gól ÉS büntető lesz)",
+    "legs": [
+      {"market": "piac neve magyarul", "selection": "mit választasz", "odds": szám},
+      {"market": "piac neve magyarul", "selection": "mit választasz", "odds": szám},
+      {"market": "piac neve magyarul", "selection": "mit választasz", "odds": szám}
+    ],
+    "combinedOdds": szám (8.00–25.00+ között),
+    "confidence": 15-35,
+    "reasoning": "2 mondat magyarul: mi indokolja ezt a merész kombinációt"
   },
   "keyFactors": [
     "1. tényező",
@@ -407,10 +415,11 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
 }
 
 FONTOS:
-- safeBet: MINDIG 1.20-1.60 közötti odds, nagyon valószínű kimenetel (pl. favorit győz, over 1.5 gól)
-- mediumBet: 2.50-4.50 odds, jó value – ez a fő tipp amit érdemes megtenni
-- riskyBet: 6.00+ odds, kombináció is lehet (pl. 3+ gól ÉS mindkét csapat szerez)
-- Ha az elérhető odds-ok nem fedik le ezeket a kategóriákat, becsüld a valódi valószínűség alapján
+- safeBet: EGYETLEN tipp, 1.15-1.65 odds – a legbiztosabb kimenetel amit találsz
+- mediumBet: KOMBINÁCIÓ 2-3 fogadásból (pl. "Barcelona győz 1. félidőben" + "Over 1.5 gól" + "Büntető lesz"), combinedOdds 3.00-6.00
+- riskyBet: MERÉSZ KOMBINÁCIÓ 3-4 fogadásból (pl. mindkét csapat szerez + 3+ gól + pontos eredmény), combinedOdds 8.00+
+- A kombinációknál minden "legs" elem külön fogadás, a combinedOdds az összes szorzata
+- MINDEN szöveg magyarul legyen: "Igen" nem "Yes", "Több mint" nem "Over", "Hazai győzelem" nem "Home Win" stb.
 - NINCS Hendikep / Ázsiai Hendikep tipp
 - Minden confidence érték reális legyen (ne legyen minden 90+)
 - Szöglet és lap tippnél MINDIG adj konkrét line-t és predikciót – "nincs elég adat" NEM elfogadható válasz
