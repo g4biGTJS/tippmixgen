@@ -352,18 +352,18 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
     "reasoning": "1-2 mondat"
   },
   "corners": {
-    "line": null vagy szám (pl. 9.5),
-    "prediction": "over" | "under" | null,
+    "line": szám (KÖTELEZŐ – ha nincs odds, becsüld: Premier League átlag ~10, kisebb ligák ~9),
+    "prediction": "over" | "under" (KÖTELEZŐ – mindig adj becslést a csapatok stílusa alapján),
     "confidence": 1-100,
     "odds": null vagy szám,
-    "reasoning": "1-2 mondat – ha nincs elég adat, írd azt"
+    "reasoning": "1-2 mondat – támadó csapatok több szögletet szereznek, becsüld a liga és stílus alapján"
   },
   "cards": {
-    "line": null vagy szám,
-    "prediction": "over" | "under" | null,
+    "line": szám (KÖTELEZŐ – ha nincs odds, becsüld: átlag ~3-4 lap/meccs),
+    "prediction": "over" | "under" (KÖTELEZŐ – rangadók, rivalizálás = több lap),
     "confidence": 1-100,
     "odds": null vagy szám,
-    "reasoning": "1-2 mondat – ha nincs elég adat, írd azt"
+    "reasoning": "1-2 mondat – meccs tétje, rivalizálás, bíró szigora alapján becsüld"
   },
   "bestBet": {
     "market": "melyik piac (pl. Over 2.5 gól)",
@@ -397,7 +397,9 @@ FONTOS:
 - Az extraTips-ben adj 2-4 extra tippet amit az AI hasznosnak tart (félidő, első gól, stb.)
 - NINCS Hendikep / Ázsiai Hendikep tipp
 - Minden confidence érték reális legyen (ne legyen minden 90+)
-- Ha nincs elég adat valamihez (pl. szöglet), a confidence legyen alacsony (30-50)
+- Szöglet és lap tippnél MINDIG adj konkrét line-t és predikciót – "nincs elég adat" NEM elfogadható válasz
+- Ha nincs szöglet/lap odds: becsüld a csapatok stílusa és liga átlag alapján (szöglet: 9-11, lapok: 3-5)
+- Confidence szöglet/lapnál lehet 45-65 ha csak becslés, de prediction és line MINDIG legyen kitöltve
 `.trim();
 
   return { system, user };
