@@ -458,6 +458,48 @@
 
     .section-gap { margin-top: 24px; }
 
+    /* Bet trio */
+    .bet-trio {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 700px) { .bet-trio { grid-template-columns: 1fr; } }
+
+    .bet-card {
+      border-radius: var(--radius);
+      padding: 18px 18px 14px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .bet-safe   { background: rgba(0,230,118,.06);  border-color: rgba(0,230,118,.25); }
+    .bet-medium { background: rgba(255,215,64,.06); border-color: rgba(255,215,64,.25); }
+    .bet-risky  { background: rgba(255,82,82,.06);  border-color: rgba(255,82,82,.25); }
+
+    .bet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .bet-label  { font-family: var(--font-head); font-size: 13px; font-weight: 800; letter-spacing: .05em; }
+    .bet-safe   .bet-label { color: var(--green); }
+    .bet-medium .bet-label { color: var(--yellow); }
+    .bet-risky  .bet-label { color: var(--red); }
+
+    .bet-sub    { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+    .bet-market { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-family: var(--font-mono); margin-bottom: 6px; }
+    .bet-pick   { font-family: var(--font-head); font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; margin-bottom: 10px; }
+    .bet-footer { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+
+    .bet-odds {
+      font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+      padding: 3px 10px; border-radius: 4px;
+    }
+    .bet-safe   .bet-odds { background: rgba(0,230,118,.15);  color: var(--green);  border: 1px solid rgba(0,230,118,.3); }
+    .bet-medium .bet-odds { background: rgba(255,215,64,.15); color: var(--yellow); border: 1px solid rgba(255,215,64,.3); }
+    .bet-risky  .bet-odds { background: rgba(255,82,82,.15);  color: var(--red);    border: 1px solid rgba(255,82,82,.3); }
+
+    .bet-conf   { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .bet-reason { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
     footer {
       margin-top: 60px; padding-top: 20px;
       border-top: 1px solid var(--border);
@@ -522,17 +564,7 @@
     </div>
     <div class="match-meta" id="resMeta"></div>
 
-    <div class="best-bet-card" id="bestBetCard">
-      <div class="best-bet-badge">★ Legjobb fogadás</div>
-      <div class="best-bet-market" id="bbMarket"></div>
-      <div class="best-bet-pick" id="bbPick"></div>
-      <div class="best-bet-row">
-        <div class="odds-pill" id="bbOdds"></div>
-        <div class="value-pill" id="bbValue" style="display:none"></div>
-        <div class="conf-pill" id="bbConf"></div>
-      </div>
-      <div class="best-bet-reason" id="bbReason"></div>
-    </div>
+    <div class="bet-trio" id="betTrio"></div>
 
     <div class="tips-grid" id="tipsGrid"></div>
 
@@ -712,19 +744,33 @@ function renderResults(homeTeam, awayTeam, data) {
     [fix?.date, fix?.league].filter(Boolean).join(' · ') ||
     new Date(data.meta?.generatedAt || Date.now()).toLocaleString('hu');
 
-  // Best bet
-  const bb = tips.bestBet;
-  if (bb) {
-    document.getElementById('bbMarket').textContent = bb.market || '';
-    document.getElementById('bbPick').textContent   = bb.pick   || '';
-    document.getElementById('bbOdds').textContent   = bb.odds   ? `@${bb.odds}` : 'odds n/a';
-    document.getElementById('bbConf').textContent   = bb.confidence ? `${bb.confidence}% bizalom` : '';
-    document.getElementById('bbReason').textContent = bb.reasoning || '';
-    if (bb.valuePct) {
-      const vp = document.getElementById('bbValue');
-      vp.textContent = `+${bb.valuePct}% value`;
-      vp.style.display = 'block';
-    }
+  // 3 tipp kategória
+  const trio = document.getElementById('betTrio');
+  trio.innerHTML = '';
+  const betDefs = [
+    { key: 'safeBet',   label: '🟢 Biztos Tipp',   sub: 'Alacsony rizikó',   cls: 'safe'   },
+    { key: 'mediumBet', label: '🟡 Közepes Tipp',   sub: '2k → ~6-9k',       cls: 'medium' },
+    { key: 'riskyBet',  label: '🔴 Rizikós Tipp',   sub: 'Nagy odds / nyeremény', cls: 'risky'  },
+  ];
+  for (const bd of betDefs) {
+    const b = tips[bd.key];
+    if (!b) continue;
+    const card = document.createElement('div');
+    card.className = `bet-card bet-${bd.cls}`;
+    card.innerHTML = `
+      <div class="bet-header">
+        <span class="bet-label">${bd.label}</span>
+        <span class="bet-sub">${bd.sub}</span>
+      </div>
+      <div class="bet-market">${b.market || ''}</div>
+      <div class="bet-pick">${b.pick || ''}</div>
+      <div class="bet-footer">
+        <span class="bet-odds">${b.odds ? '@' + b.odds : 'odds n/a'}</span>
+        <span class="bet-conf">${b.confidence ? b.confidence + '% bizalom' : ''}</span>
+      </div>
+      <div class="bet-reason">${b.reasoning || ''}</div>
+    `;
+    trio.appendChild(card);
   }
 
   // Tips grid
