@@ -365,13 +365,26 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
     "odds": null vagy szám,
     "reasoning": "1-2 mondat – meccs tétje, rivalizálás, bíró szigora alapján becsüld"
   },
-  "bestBet": {
-    "market": "melyik piac (pl. Over 2.5 gól)",
+  "safeBet": {
+    "market": "melyik piac",
     "pick": "pontosan mit ajánlasz",
-    "odds": null vagy szám,
-    "confidence": 1-100,
-    "valuePct": null vagy szám (mennyivel jobb az odds a valódinál, %),
-    "reasoning": "2-3 mondat: miért ez a legjobb value, milyen adatok támasztják alá"
+    "odds": szám (1.20–1.60 közötti odds – BIZTOS tipp, nagy valószínűség),
+    "confidence": 75-95,
+    "reasoning": "2 mondat: miért biztos ez, milyen adatok alapján"
+  },
+  "mediumBet": {
+    "market": "melyik piac",
+    "pick": "pontosan mit ajánlasz",
+    "odds": szám (2.50–4.50 közötti odds – KÖZEPES rizikó, 2000 Ft-ból ~6-9k nyeremény),
+    "confidence": 50-70,
+    "reasoning": "2 mondat: miért van value itt"
+  },
+  "riskyBet": {
+    "market": "melyik piac",
+    "pick": "pontosan mit ajánlasz",
+    "odds": szám (6.00+ odds – RIZIKÓS tipp, nagy nyeremény lehetséges),
+    "confidence": 25-45,
+    "reasoning": "2 mondat: mi indokolja ezt a merész tippet"
   },
   "keyFactors": [
     "1. tényező",
@@ -394,7 +407,10 @@ Válasz KIZÁRÓLAG az alábbi JSON struktúrában:
 }
 
 FONTOS:
-- Az extraTips-ben adj 2-4 extra tippet amit az AI hasznosnak tart (félidő, első gól, stb.)
+- safeBet: MINDIG 1.20-1.60 közötti odds, nagyon valószínű kimenetel (pl. favorit győz, over 1.5 gól)
+- mediumBet: 2.50-4.50 odds, jó value – ez a fő tipp amit érdemes megtenni
+- riskyBet: 6.00+ odds, kombináció is lehet (pl. 3+ gól ÉS mindkét csapat szerez)
+- Ha az elérhető odds-ok nem fedik le ezeket a kategóriákat, becsüld a valódi valószínűség alapján
 - NINCS Hendikep / Ázsiai Hendikep tipp
 - Minden confidence érték reális legyen (ne legyen minden 90+)
 - Szöglet és lap tippnél MINDIG adj konkrét line-t és predikciót – "nincs elég adat" NEM elfogadható válasz
