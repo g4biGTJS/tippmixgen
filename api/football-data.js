@@ -44,7 +44,9 @@ async function afoot(endpoint, params = {}) {
 // ─── Csapat keresés név alapján ───────────────────────────────────────────────
 
 async function findTeam(name) {
-  const results = await afoot('/teams', { search: name });
+  // API-Football csak alfanumerikus + szóköz karaktert fogad el
+  const cleanName = name.replace(/[^a-zA-Z0-9 áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/g, ' ').trim();
+  const results = await afoot('/teams', { search: cleanName });
   if (!results.length) throw new Error(`Csapat nem található: "${name}"`);
 
   // Pontos egyezés előnyben
