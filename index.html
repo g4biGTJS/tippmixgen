@@ -659,8 +659,15 @@ async function analyze() {
         body:    JSON.stringify({ homeTeam, awayTeam }),
       });
       const j = await r.json();
-      if (r.ok && !j.error) matchData = j;
-      else console.warn('football-data:', j.error);
+      if (r.ok) {
+        matchData = j;
+        if (j.noData) {
+          setStatus('loading', 'Statisztika nem elérhető – AI elemzés csak odds alapján folytatódik…');
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      } else {
+        console.warn('football-data:', j.error);
+      }
     } catch (e) {
       console.warn('football-data fetch:', e.message);
     }
