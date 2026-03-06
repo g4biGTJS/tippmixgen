@@ -500,6 +500,17 @@
     .bet-conf   { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
     .bet-reason { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
+    .bet-legs { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .bet-leg {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.04);
+      border-radius: 4px; padding: 5px 8px;
+      font-size: 12px;
+    }
+    .bet-leg-market { color: var(--muted); font-family: var(--font-mono); font-size: 10px; flex-shrink: 0; }
+    .bet-leg-sel    { color: var(--text); font-weight: 600; flex: 1; }
+    .bet-leg-odds   { color: var(--muted); font-family: var(--font-mono); font-size: 11px; flex-shrink: 0; }
+
     footer {
       margin-top: 60px; padding-top: 20px;
       border-top: 1px solid var(--border);
@@ -721,7 +732,7 @@ async function analyze() {
     const tipJson = await tipRes.json();
     if (!tipRes.ok || tipJson.error) throw new Error(tipJson.error || 'Ismeretlen hiba');
 
-    setStatus('success', `Elemzés kész! ${liveScraperData ? '· Odds felhasználva ✓' : '· Odds nincs'}`);
+    setStatus('success', `Elemzés kész! ${liveScraperData ? '· Odds felhasználva ✓' : '· Odds nélkül'}`);
     renderResults(homeTeam, awayTeam, tipJson);
 
   } catch (err) {
@@ -747,31 +758,47 @@ function renderResults(homeTeam, awayTeam, data) {
   // 3 tipp kategória
   const trio = document.getElementById('betTrio');
   trio.innerHTML = '';
-  const betDefs = [
-    { key: 'safeBet',   label: '🟢 Biztos Tipp',   sub: 'Alacsony rizikó',   cls: 'safe'   },
-    { key: 'mediumBet', label: '🟡 Közepes Tipp',   sub: '2k → ~6-9k',       cls: 'medium' },
-    { key: 'riskyBet',  label: '🔴 Rizikós Tipp',   sub: 'Nagy odds / nyeremény', cls: 'risky'  },
-  ];
-  for (const bd of betDefs) {
-    const b = tips[bd.key];
-    if (!b) continue;
+
+  function renderBetCard(b, label, sub, cls) {
+    if (!b) return;
     const card = document.createElement('div');
-    card.className = `bet-card bet-${bd.cls}`;
+    card.className = `bet-card bet-${cls}`;
+
+    // Kombináció megjelenítés (medium/risky)
+    let legsHtml = '';
+    if (b.legs?.length) {
+      legsHtml = `<div class="bet-legs">${b.legs.map(l =>
+        `<div class="bet-leg">
+          <span class="bet-leg-market">${l.market}</span>
+          <span class="bet-leg-sel">${l.selection}</span>
+          ${l.odds ? `<span class="bet-leg-odds">@${l.odds}</span>` : ''}
+        </div>`
+      ).join('')}</div>`;
+    }
+
+    const displayOdds = b.combinedOdds || b.odds;
+    const oddsLabel   = b.legs?.length ? `Kombináció @${displayOdds}` : (displayOdds ? `@${displayOdds}` : 'odds n/a');
+
     card.innerHTML = `
       <div class="bet-header">
-        <span class="bet-label">${bd.label}</span>
-        <span class="bet-sub">${bd.sub}</span>
+        <span class="bet-label">${label}</span>
+        <span class="bet-sub">${sub}</span>
       </div>
-      <div class="bet-market">${b.market || ''}</div>
+      ${!b.legs?.length ? `<div class="bet-market">${b.market || ''}</div>` : ''}
       <div class="bet-pick">${b.pick || ''}</div>
+      ${legsHtml}
       <div class="bet-footer">
-        <span class="bet-odds">${b.odds ? '@' + b.odds : 'odds n/a'}</span>
-        <span class="bet-conf">${b.confidence ? b.confidence + '% bizalom' : ''}</span>
+        <span class="bet-odds">${oddsLabel}</span>
+        <span class="bet-conf">${b.confidence ? b.confidence + '% megbízhatóság' : ''}</span>
       </div>
       <div class="bet-reason">${b.reasoning || ''}</div>
     `;
     trio.appendChild(card);
   }
+
+  renderBetCard(tips.safeBet,   '🟢 Biztos Tipp',  'Alacsony rizikó',       'safe');
+  renderBetCard(tips.mediumBet, '🟡 Közepes Tipp', '2 000 Ft → ~6-9 000 Ft', 'medium');
+  renderBetCard(tips.riskyBet,  '🔴 Rizikós Tipp', 'Nagy odds, nagy nyeremény', 'risky');
 
   // Tips grid
   const grid = document.getElementById('tipsGrid');
@@ -779,10 +806,10 @@ function renderResults(homeTeam, awayTeam, data) {
 
   const defs = [
     { key: 'matchResult', label: '1X2 Eredmény',  color: '',       fmt: t => t.prediction },
-    { key: 'overUnder',   label: 'Over / Under',   color: 'yellow', fmt: t => `${(t.prediction||'').toUpperCase()} ${t.line??''}` },
-    { key: 'btts',        label: 'Mindkét csapat', color: 'blue',   fmt: t => t.prediction ? 'IGEN ✓' : 'NEM ✗' },
+    { key: 'overUnder',   label: 'Több/Kevesebb gól',   color: 'yellow', fmt: t => { const raw = (t.prediction||''); const p = raw==='over'||raw==='több' ? 'Több mint' : raw==='under'||raw==='kevesebb' ? 'Kevesebb mint' : raw; return `${p} ${t.line??''}`.trim(); } },
+    { key: 'btts',        label: 'Mindkét csapat szerez', color: 'blue',   fmt: t => t.prediction ? 'IGEN ✓' : 'NEM ✗' },
     { key: 'corners',     label: 'Szöglet',        color: 'muted',  fmt: t => t.prediction && t.line ? `${(t.prediction).toUpperCase()} ${t.line}` : t.prediction ? (t.prediction).toUpperCase() : '—' },
-    { key: 'cards',       label: 'Lapok',          color: 'red',    fmt: t => t.prediction && t.line ? `${(t.prediction).toUpperCase()} ${t.line}` : t.prediction ? (t.prediction).toUpperCase() : '—' },
+    { key: 'cards',       label: 'Sárga/Piros lap',          color: 'red',    fmt: t => t.prediction && t.line ? `${(t.prediction).toUpperCase()} ${t.line}` : t.prediction ? (t.prediction).toUpperCase() : '—' },
   ];
 
   for (const d of defs) {
@@ -852,14 +879,14 @@ function renderResults(homeTeam, awayTeam, data) {
   rb.textContent = risk === 'low' ? 'Alacsony' : risk === 'high' ? 'Magas' : 'Közepes';
   rb.className   = `risk-badge risk-${risk}`;
   document.getElementById('riskNote').textContent =
-    risk === 'low'  ? 'Stabil forma, egyértelmű statisztikák.' :
-    risk === 'high' ? 'Kevés adat vagy bizonytalan forma.' :
-                      'Közepes bizonytalanság, körültekintően fogadj.';
+    risk === 'low'  ? 'Stabil forma, egyértelmű statisztikák alapján.' :
+    risk === 'high' ? 'Kevés adat vagy bizonytalan forma esetén.' :
+                      'Közepes bizonytalanság – körültekintően fogadj.';
 
   // Meta
   const m = data.meta || {};
   document.getElementById('genMeta').textContent =
-    `odds:${m.oddsUsed?'✓':'✗'} stat:${m.statsUsed?'✓':'✗'} · ${m.model||''}`;
+    `odds:${m.oddsUsed?'✓':'✗'} statisztika:${m.statsUsed?'✓':'✗'} · ${m.model||''}`;
 
   document.getElementById('results').classList.add('show');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
