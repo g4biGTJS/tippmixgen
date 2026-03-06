@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/football-data.js": { "runtime": "edge" },
+    "api/football-tips.js": { "runtime": "edge" },
+    "api/odds-sync.js":     { "runtime": "edge" },
+    "api/ai-prediction.js": { "runtime": "edge" },
+    "api/match-tips.js":    { "runtime": "edge" }
+  }
+}
