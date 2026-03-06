@@ -735,8 +735,8 @@ function renderResults(homeTeam, awayTeam, data) {
     { key: 'matchResult', label: '1X2 Eredmény',  color: '',       fmt: t => t.prediction },
     { key: 'overUnder',   label: 'Over / Under',   color: 'yellow', fmt: t => `${(t.prediction||'').toUpperCase()} ${t.line??''}` },
     { key: 'btts',        label: 'Mindkét csapat', color: 'blue',   fmt: t => t.prediction ? 'IGEN ✓' : 'NEM ✗' },
-    { key: 'corners',     label: 'Szöglet',        color: 'muted',  fmt: t => t.prediction ? `${(t.prediction||'').toUpperCase()} ${t.line??''}` : 'Nincs elég adat' },
-    { key: 'cards',       label: 'Lapok',          color: 'red',    fmt: t => t.prediction ? `${(t.prediction||'').toUpperCase()} ${t.line??''}` : 'Nincs elég adat' },
+    { key: 'corners',     label: 'Szöglet',        color: 'muted',  fmt: t => t.prediction && t.line ? `${(t.prediction).toUpperCase()} ${t.line}` : t.prediction ? (t.prediction).toUpperCase() : '—' },
+    { key: 'cards',       label: 'Lapok',          color: 'red',    fmt: t => t.prediction && t.line ? `${(t.prediction).toUpperCase()} ${t.line}` : t.prediction ? (t.prediction).toUpperCase() : '—' },
   ];
 
   for (const d of defs) {
