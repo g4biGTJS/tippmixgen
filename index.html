@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FootballAI · Tipp Elemző</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Tokens ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0d0f;
+      --surface:   #111518;
+      --surface2:  #181d21;
+      --border:    #232b32;
+      --green:     #00e676;
+      --green-dim: #00c15e;
+      --green-bg:  rgba(0,230,118,.07);
+      --yellow:    #ffd740;
+      --red:       #ff5252;
+      --blue:      #40c4ff;
+      --text:      #e8edf0;
+      --muted:     #6b7a87;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --radius:    6px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Pitch grid background ────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,230,118,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,230,118,.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      padding: 36px 0 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--green);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(0,230,118,.2);
+    }
+
+    .header-text h1 {
+      font-family: var(--font-head);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .header-text h1 span { color: var(--green); }
+
+    .header-text p {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-top: 4px;
+      font-family: var(--font-mono);
+    }
+
+    /* ── Card ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Input form ───────────────────────────────────────────── */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .vs-badge {
+      font-family: var(--font-head);
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .field-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+    .field-wrap label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus { border-color: var(--green); }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .odds-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 12px;
+    }
+
+    .toggle-switch {
+      width: 40px;
+      height: 22px;
+      background: var(--border);
+      border-radius: 11px;
+      position: relative;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: var(--muted);
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform .2s, background .2s;
+    }
+
+    .odds-toggle.active .toggle-switch { background: var(--green-bg); border: 1px solid var(--green); }
+    .odds-toggle.active .toggle-switch::after { transform: translateX(18px); background: var(--green); }
+
+    .toggle-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--green-dim);
+      box-shadow: 0 0 24px rgba(0,230,118,.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--muted); }
+
+    /* ── Status ───────────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: var(--font-mono);
+      margin-top: 12px;
+      display: none;
+    }
+
+    .status-bar.show { display: flex; }
+    .status-bar.loading { background: rgba(64,196,255,.08); border: 1px solid rgba(64,196,255,.2); color: var(--blue); }
+    .status-bar.error   { background: rgba(255,82,82,.08);  border: 1px solid rgba(255,82,82,.2);  color: var(--red); }
+    .status-bar.success { background: var(--green-bg);      border: 1px solid rgba(0,230,118,.2);  color: var(--green); }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ──────────────────────────────────────────────── */
+    #results { display: none; }
+    #results.show { display: block; animation: fadeUp .4s ease both; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Match header */
+    .match-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .team-name {
+      font-family: var(--font-head);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      flex: 1;
+      text-align: center;
+    }
+
+    .match-vs {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 4px;
+    }
+
+    .match-meta {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-bottom: 24px;
+    }
+
+    /* Tips grid */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 600px) { .tips-grid { grid-template-columns: 1fr; } }
+
+    .tip-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tip-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--green);
+    }
+
+    .tip-card.yellow::before { background: var(--yellow); }
+    .tip-card.blue::before   { background: var(--blue); }
+    .tip-card.red::before    { background: var(--red); }
+    .tip-card.muted::before  { background: var(--muted); }
+
+    .tip-market {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-bottom: 8px;
+    }
+
+    .tip-pick {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .tip-card.yellow .tip-pick { color: var(--yellow); }
+    .tip-card.blue   .tip-pick { color: var(--blue); }
+    .tip-card.red    .tip-pick { color: var(--red); }
+    .tip-card.muted  .tip-pick { color: var(--muted); }
+
+    .tip-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tip-odds {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--border);
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    .confidence-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      transition: width .8s ease;
+    }
+
+    .tip-card.yellow .confidence-fill { background: var(--yellow); }
+    .tip-card.blue   .confidence-fill { background: var(--blue); }
+    .tip-card.muted  .confidence-fill { background: var(--muted); }
+
+    .confidence-val {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .tip-reasoning {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Best bet */
+    .best-bet-card {
+      background: var(--green-bg);
+      border: 1px solid rgba(0,230,118,.25);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .best-bet-badge {
+      position: absolute;
+      top: -1px;
+      right: 16px;
+      background: var(--green);
+      color: #000;
+      font-family: var(--font-head);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 0 0 4px 4px;
+    }
+
+    .best-bet-market {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--green);
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+    }
+
+    .best-bet-pick {
+      font-family: var(--font-head);
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .best-bet-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .odds-pill {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 500;
+      background: rgba(0,230,118,.15);
+      color: var(--green);
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,230,118,.3);
+    }
+
+    .value-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--yellow);
+      background: rgba(255,215,64,.08);
+      border: 1px solid rgba(255,215,64,.2);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    .conf-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .best-bet-reason {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Analysis */
+    .analysis-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    /* Key factors */
+    .factors-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .factors-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .factors-list li::before {
+      content: '→';
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Risk badge */
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .risk-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+
+    .risk-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .risk-low    { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
+    .risk-medium { background: rgba(255,215,64,.12); color: var(--yellow); border: 1px solid rgba(255,215,64,.25); }
+    .risk-high   { background: rgba(255,82,82,.12);  color: var(--red);    border: 1px solid rgba(255,82,82,.25); }
+
+    /* Extra tips */
+    .extra-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .extra-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .extra-market {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+    }
+
+    .extra-pick {
+      font-family: var(--font-head);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .extra-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+
+    .extra-reasoning {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    /* Divider */
+    .section-gap { margin-top: 24px; }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-mark">FA</div>
+    <div class="header-text">
+      <h1>Football<span>AI</span></h1>
+      <p>AI-alapú meccs elemzés &amp; tipp generátor</p>
+    </div>
+  </header>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-title">Mérkőzés beállítása</div>
+
+    <div class="input-grid">
+      <div class="field-wrap">
+        <label>Hazai csapat</label>
+        <input type="text" id="homeTeam" placeholder="pl. Ferencváros" />
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="field-wrap">
+        <label>Vendég csapat</label>
+        <input type="text" id="awayTeam" placeholder="pl. Paks" />
+      </div>
+    </div>
+
+    <!-- TippmixPro odds toggle -->
+    <div class="odds-toggle" id="oddsToggle" onclick="toggleOdds()">
+      <div class="toggle-switch"></div>
+      <span class="toggle-label">TippmixPro odds beillesztése</span>
+    </div>
+
+    <div id="oddsSection" style="display:none; margin-bottom:16px;">
+      <div class="field-wrap">
+        <label>TippmixPro scraper JSON (másold be a teljes output tartalmat)</label>
+        <textarea id="scraperJson" placeholder='{"timestamp":"...","data":[...]}'></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">
+        <span>⚡</span> Elemzés indítása
+      </button>
+      <button class="btn btn-secondary" onclick="clearAll()">Törlés</button>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="spinner" id="statusSpinner" style="display:none"></div>
+      <span id="statusText"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Match header -->
+    <div class="match-header">
+      <div class="team-name" id="resHome">—</div>
+      <div class="match-vs">VS</div>
+      <div class="team-name" id="resAway">—</div>
+    </div>
+    <div class="match-meta" id="resMeta"></div>
+
+    <!-- Best bet -->
+    <div class="best-bet-card" id="bestBetCard">
+      <div class="best-bet-badge">★ Legjobb fogadás</div>
+      <div class="best-bet-market" id="bbMarket"></div>
+      <div class="best-bet-pick" id="bbPick"></div>
+      <div class="best-bet-row">
+        <div class="odds-pill" id="bbOdds"></div>
+        <div class="value-pill" id="bbValue" style="display:none"></div>
+        <div class="conf-pill" id="bbConf"></div>
+      </div>
+      <div class="best-bet-reason" id="bbReason"></div>
+    </div>
+
+    <!-- Tips grid -->
+    <div class="tips-grid" id="tipsGrid"></div>
+
+    <!-- Extra tips -->
+    <div id="extraSection" style="display:none">
+      <div class="card-title section-gap">Extra tippek</div>
+      <div class="extra-grid" id="extraGrid"></div>
+    </div>
+
+    <!-- Analysis -->
+    <div class="card-title section-gap">Elemzés</div>
+    <div class="analysis-box" id="analysisBox"></div>
+
+    <!-- Key factors + risk -->
+    <div class="tips-grid">
+      <div class="card">
+        <div class="card-title">Kulcstényezők</div>
+        <ul class="factors-list" id="factorsList"></ul>
+      </div>
+      <div class="card">
+        <div class="card-title">Kockázat</div>
+        <div class="risk-row">
+          <span class="risk-label">Szint:</span>
+          <span class="risk-badge" id="riskBadge"></span>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin-top:12px;" id="riskNote"></p>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; text-align:right;">
+      <span style="font-size:11px; color:var(--muted); font-family:var(--font-mono);" id="genMeta"></span>
+    </div>
+  </div>
+
+  <footer>
+    FootballAI · Powered by llm7.io &amp; API-Football · Csak szórakozásra, nem pénzügyi tanács
+  </footer>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let oddsEnabled = false;
+
+// ── Toggle odds ───────────────────────────────────────────────────────────────
+function toggleOdds() {
+  oddsEnabled = !oddsEnabled;
+  document.getElementById('oddsToggle').classList.toggle('active', oddsEnabled);
+  document.getElementById('oddsSection').style.display = oddsEnabled ? 'block' : 'none';
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+function setStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  const txt = document.getElementById('statusText');
+  const sp  = document.getElementById('statusSpinner');
+  bar.className = `status-bar show ${type}`;
+  txt.textContent = msg;
+  sp.style.display = type === 'loading' ? 'block' : 'none';
+}
+function hideStatus() {
+  document.getElementById('statusBar').className = 'status-bar';
+}
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+function clearAll() {
+  document.getElementById('homeTeam').value = '';
+  document.getElementById('awayTeam').value = '';
+  document.getElementById('scraperJson').value = '';
+  document.getElementById('results').classList.remove('show');
+  hideStatus();
+}
+
+// ── Main analyze ──────────────────────────────────────────────────────────────
+async function analyze() {
+  const homeTeam = document.getElementById('homeTeam').value.trim();
+  const awayTeam = document.getElementById('awayTeam').value.trim();
+
+  if (!homeTeam || !awayTeam) {
+    setStatus('error', 'Add meg mindkét csapat nevét!');
+    return;
+  }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  document.getElementById('results').classList.remove('show');
+
+  // Scraper adat parse
+  let scraperData = null;
+  if (oddsEnabled) {
+    const raw = document.getElementById('scraperJson').value.trim();
+    if (raw) {
+      try {
+        scraperData = JSON.parse(raw);
+      } catch {
+        setStatus('error', 'Érvénytelen JSON az odds mezőben!');
+        btn.disabled = false;
+        return;
+      }
+    }
+  }
+
+  try {
+    // Lépés 1: statisztikák lekérése
+    setStatus('loading', `Statisztikák lekérése: ${homeTeam} vs ${awayTeam}…`);
+    let matchData = null;
+
+    try {
+      const dataRes = await fetch('/api/football-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeTeam, awayTeam }),
+      });
+      const dataJson = await dataRes.json();
+      if (dataRes.ok && !dataJson.error) {
+        matchData = dataJson;
+      } else {
+        console.warn('football-data hiba:', dataJson.error);
+      }
+    } catch (e) {
+      console.warn('football-data fetch hiba:', e.message);
+    }
+
+    // Lépés 2: AI elemzés
+    setStatus('loading', 'AI elemzés generálása…');
+
+    const tipRes = await fetch('/api/football-tips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ homeTeam, awayTeam, matchData, scraperData }),
+    });
+
+    const tipJson = await tipRes.json();
+
+    if (!tipRes.ok || tipJson.error) {
+      throw new Error(tipJson.error || 'Ismeretlen hiba');
+    }
+
+    setStatus('success', 'Elemzés kész!');
+    renderResults(homeTeam, awayTeam, tipJson);
+
+  } catch (err) {
+    setStatus('error', `Hiba: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderResults(homeTeam, awayTeam, data) {
+  const tips = data.tips;
+  if (!tips) { setStatus('error', 'Nincs tipp adat a válaszban'); return; }
+
+  // Match header
+  document.getElementById('resHome').textContent = homeTeam;
+  document.getElementById('resAway').textContent = awayTeam;
+
+  const fix = data.tips?.nextFixture || data.matchData?.nextFixture;
+  document.getElementById('resMeta').textContent =
+    [fix?.date, fix?.league].filter(Boolean).join(' · ') ||
+    `Generálva: ${new Date(data.meta?.generatedAt || Date.now()).toLocaleString('hu')}`;
+
+  // Best bet
+  const bb = tips.bestBet;
+  if (bb) {
+    document.getElementById('bbMarket').textContent = bb.market || '';
+    document.getElementById('bbPick').textContent   = bb.pick   || '';
+    document.getElementById('bbOdds').textContent   = bb.odds   ? `@${bb.odds}` : 'odds n/a';
+    document.getElementById('bbConf').textContent   = bb.confidence ? `${bb.confidence}% bizalom` : '';
+    document.getElementById('bbReason').textContent = bb.reasoning || '';
+
+    if (bb.valuePct) {
+      const vp = document.getElementById('bbValue');
+      vp.textContent = `+${bb.valuePct}% value`;
+      vp.style.display = 'block';
+    }
+  }
+
+  // Tips grid
+  const tipsGrid = document.getElementById('tipsGrid');
+  tipsGrid.innerHTML = '';
+
+  const tipDefs = [
+    { key: 'matchResult', label: '1X2 Eredmény',    color: '',       fmt: t => t.prediction },
+    { key: 'overUnder',   label: 'Over / Under',     color: 'yellow', fmt: t => `${t.prediction?.toUpperCase()} ${t.line}` },
+    { key: 'btts',        label: 'Mindkét csapat',   color: 'blue',   fmt: t => t.prediction ? 'IGEN ✓' : 'NEM ✗' },
+    { key: 'corners',     label: 'Szöglet',          color: 'muted',  fmt: t => t.prediction ? `${t.prediction?.toUpperCase()} ${t.line ?? ''}` : 'Nincs elég adat' },
+    { key: 'cards',       label: 'Lapok',            color: 'red',    fmt: t => t.prediction ? `${t.prediction?.toUpperCase()} ${t.line ?? ''}` : 'Nincs elég adat' },
+  ];
+
+  for (const def of tipDefs) {
+    const t = tips[def.key];
+    if (!t) continue;
+
+    const card = document.createElement('div');
+    card.className = `tip-card ${def.color}`;
+    card.innerHTML = `
+      <div class="tip-market">${def.label}</div>
+      <div class="tip-pick">${def.fmt(t)}</div>
+      <div class="tip-meta">
+        ${t.odds ? `<div class="tip-odds">@${t.odds}</div>` : ''}
+        <div class="confidence-bar">
+          <div class="confidence-fill" style="width:0%" data-target="${t.confidence || 0}"></div>
+        </div>
+        <div class="confidence-val">${t.confidence ?? '—'}%</div>
+      </div>
+      <div class="tip-reasoning">${t.reasoning || ''}</div>
+    `;
+    tipsGrid.appendChild(card);
+  }
+
+  // Animate confidence bars
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.confidence-fill').forEach(el => {
+      el.style.width = (el.dataset.target || 0) + '%';
+    });
+  });
+
+  // Extra tips
+  const extraGrid  = document.getElementById('extraGrid');
+  const extraSection = document.getElementById('extraSection');
+  extraGrid.innerHTML = '';
+
+  if (tips.extraTips?.length) {
+    extraSection.style.display = 'block';
+    for (const et of tips.extraTips) {
+      const ec = document.createElement('div');
+      ec.className = 'extra-card';
+      ec.innerHTML = `
+        <div class="extra-market">${et.market || ''}</div>
+        <div class="extra-pick">${et.pick || ''}</div>
+        <div class="extra-meta">
+          ${et.odds ? `@${et.odds}` : ''}
+          <span>${et.confidence ? `${et.confidence}%` : ''}</span>
+        </div>
+        <div class="extra-reasoning">${et.reasoning || ''}</div>
+      `;
+      extraGrid.appendChild(ec);
+    }
+  } else {
+    extraSection.style.display = 'none';
+  }
+
+  // Analysis
+  document.getElementById('analysisBox').textContent = tips.analysis || 'Nincs elemzés.';
+
+  // Key factors
+  const fl = document.getElementById('factorsList');
+  fl.innerHTML = '';
+  (tips.keyFactors || []).forEach(f => {
+    const li = document.createElement('li');
+    li.textContent = f;
+    fl.appendChild(li);
+  });
+
+  // Risk
+  const risk = tips.riskLevel || 'medium';
+  const rb   = document.getElementById('riskBadge');
+  rb.textContent = risk === 'low' ? 'Alacsony' : risk === 'high' ? 'Magas' : 'Közepes';
+  rb.className   = `risk-badge risk-${risk}`;
+  document.getElementById('riskNote').textContent =
+    risk === 'low'    ? 'Stabil forma és egyértelmű statisztikák alapján.' :
+    risk === 'high'   ? 'Bizonytalan forma vagy kevés adat áll rendelkezésre.' :
+                        'Közepes bizonytalanság – körültekintően fogadj.';
+
+  // Gen meta
+  const m = data.meta;
+  document.getElementById('genMeta').textContent =
+    `odds: ${m?.oddsUsed ? '✓' : '✗'}  statisztika: ${m?.statsUsed ? '✓' : '✗'}  modell: ${m?.model || 'n/a'}`;
+
+  // Show
+  const resultsEl = document.getElementById('results');
+  resultsEl.classList.add('show');
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
