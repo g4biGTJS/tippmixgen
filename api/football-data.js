@@ -12,6 +12,7 @@ const CORS = {
 };
 
 const BASE = 'https://v3.football.api-sports.io';
+const API_KEY = process.env.API_FOOTBALL_KEY || '1cd704dff5d7c89e4f961c3d902930f7';
 
 const jsonRes = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: CORS });
@@ -19,8 +20,7 @@ const jsonRes = (data, status = 200) =>
 // ─── API hívás ────────────────────────────────────────────────────────────────
 
 async function afoot(endpoint, params = {}) {
-  const key = process.env.API_FOOTBALL_KEY;
-  if (!key) throw new Error('API_FOOTBALL_KEY env változó hiányzik');
+  const key = API_KEY;
 
   const url = new URL(`${BASE}${endpoint}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
